@@ -17,13 +17,13 @@ lapply(packages, install.packages(packages), character.only = TRUE)
 
 ## Code
 
-| Part | Subject                           |        |
-| ---- | --------------------------------- | ------ |
-|    1 | Latent Dirichlet Allocation (LDA) | [code](/part1-lda.Rmd) |
-|    2 | Correlated Topic Model (CTM)      | [code](/part2-ctm.Rmd) |
-|    3 | Structured Topic Model (STM)      | [code](/part3-stm.Rmd) |
-| ---- | --------------------------------- | ------ |
+| Part | Subject                           |        |           |
+| ---- | --------------------------------- | ------ | --------- |
+|    1 | Latent Dirichlet Allocation (LDA) | [code](/part1-lda.Rmd) | [HTML output](https://htmlpreview.github.io/?https://github.com/wesslen/Topic-Modeling-Workshop-with-R/blob/master/part1-lda.html)   |
+|    2 | Correlated Topic Model (CTM)      | [code](/part2-ctm.Rmd) | [HTML output](https://rawgit.com/wesslen/Topic-Modeling-Workshop-with-R/master/part2-ctm.html)   |
+|    3 | Structured Topic Model (STM)      | [code](/part3-stm.Rmd) | [HTML output](https://htmlpreview.github.io/?https://github.com/wesslen/Topic-Modeling-Workshop-with-R/blob/master/part3-stm.html)   |
+
 
 For users interested in large-scale LDA on Spark (not available yet for CTM or STM), see [this code](https://github.com/wesslen/Code-Tutorials-for-SOPHI/blob/master/code/Scala-LDA.md).
 
-Further, readers interested in Structural Topic Modeling should read [www.structuraltopicmodel.com](http://www.structuraltopicmodel.com/). This site provides multiple papers that have employed STM as well as references on STM including the `stm` R package.
+Users interested in Structural Topic Modeling should read [www.structuraltopicmodel.com](http://www.structuraltopicmodel.com/). This site provides multiple papers that have employed STM as well as references on STM including the `stm` R package.
