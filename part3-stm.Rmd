@@ -1,0 +1,150 @@
+---
+title: "Topic Model Workshop - Part 3 (STM)"
+author: "Ryan Wesslen"
+date: "February 9, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+## Load the data
+
+Let's start by loading our packages and loading the dataset.
+
+```{r}
+library(quanteda); library(tidyverse); library(RColorBrewer); library(stm)
+
+dataset <- read_csv("~/Dropbox (UNC Charlotte)/Topic-Model-Workshop/articles-sample.csv")
+
+#create corpus
+myCorpus <- corpus(dataset$Abstract)
+docvars(myCorpus, field = "Subject") <- ifelse(dataset$College=="Computing and Informatics","Computing","Social Science")
+docvars(myCorpus, field = "Year") <- as.integer(dataset$Year)
+```
+
+## Create the dfm (pre-processing)
+
+```{r}
+stopWords <- c("can","use","uses","used","using","study","studies","first","second","third","also","across","results","result","resulted","may","however","one","two","three","four","five","among","well","within","many","related","i.e","e.g","find","finding","finds","found","increase","increases","increasing","increased","decreased","decrease","decreases","decreasing","propose","proposal","proposals","proposes","proposed","new","old","differ","differs","different","difference","differences","positive","negative","findings","reports","report","reported","state","states","article","articles","examines","examine","suggest","research","researches","researchers","need","needs","show","shows","association","associations","associated","discuss","discusses","discussed","will","likely","unlikely","paper","method","methods","methodology","compared","specifically","approach","impact","impacts","examine","examined","examines","includes","include","included","including","measure","measures","measured","analysis","analyze","analyses","complete","completes","completed","indicate","indicated","indicates","high","higher","low","lower","follow","follows","following","significant","significance","approach","approaches","approached","model","models","demonstrate","demonstrated","demonstrates","yet","best","worst","better","large","small","larger","smaller","several","few","much","less","given","via","long","short","often","years","along","whether","potential","significantly","influence","influenced","influences","develop","develops","developed","good","bad","based","p","group","groups","effect","affect","affects","effects","sample","samples","relationship","relationships","change","changes","m","k","conclusion","conclusions","present","presents")
+
+dfm <- dfm(myCorpus,
+           ignoredFeatures = c(stopwords("english"), stopWords),
+           ngrams=c(1,1),
+           stem = F)
+
+vdfm <- trim(dfm, minCount = 10, minDoc = 5)
+# minCount = remove words used less than x
+# minDoc = remove words used in less than x docs
+```
+
+## Structural Topic Model: Subject and Year
+
+For this part, we're going to use the `stm` package to introduce two covariates into our model: field (Computing or Social Science) and year.
+
+```{r}
+library(stm)
+
+# use quanteda converter to convert our Dfm
+stmdfm <- convert(dfm, to = "stm", docvars = docvars(myCorpus))
+```
+
+Unlike the `topicmodels` packages, `stm` has built in features to help analysts reduce sparse terms (minDoc or minCount).
+
+```{r}
+plotRemoved(stmdfm$documents, lower.thresh = seq(1, 100, by = 10))
+
+out <- prepDocuments(stmdfm$documents, stmdfm$vocab, stmdfm$meta, lower.thresh = 5)
+```
+
+Let's run a 40 topic model.
+
+```{r}
+k <- 40
+load("./stmFit.RData")
+
+#stmFit <- stm(out$documents, out$vocab, K = k, prevalence =~ s(Year) + Subject, 
+#              max.em.its = 150, data = out$meta, init.type = "Spectral", seed = 300)
+
+#save(stmFit, file = "./stmFit.RData")
+```
+
+Let's explore the topics.
+
+```{r, fig.height=10, fig.width=8}
+plot.STM(stmFit, 
+         type = "summary", 
+         xlim = c(0,.16), 
+         n = 5, 
+         labeltype = "prob",
+         main = "UNCC Research Topics", 
+         text.cex = 0.8)
+```
+
+We can see almost identical topics -- this is a good sign. Our topics are "stable" across runs, even in this case after we added in two prevalent covariates (Year and Subject).
+
+Let's save our topic information.
+
+```{r}
+topicNames <- labelTopics(stmFit, n = 5)
+topic <- data.frame(
+  TopicNumber = 1:k,
+  TopicProportions = colMeans(stmFit$theta))
+```
+
+## Exploring the effects of the covariates: Subject
+
+Next, we want to explore the effect of the covariates on the topic proportions.
+
+First, we'll need to use the `estimateEffect` function to estimate this effect.
+
+```{r}
+prep <- estimateEffect(1:k ~ Subject + s(Year), stmFit, meta = out$meta, uncertainty = "Global")
+```
+
+We can then use the `plot.estimateEffect` function to compare the effect of the "Subject" field (Computing or Social Science binary flag) on topic proportions (likelihood of the topic).
+
+```{r fig.height = 10, fig.width = 8}
+Result <- plot.estimateEffect(prep, "Subject", method = "difference", 
+                              cov.value1 = "Social Science", cov.value2 = "Computing", 
+                              verbose.labels = F, 
+                              ylab = "Expected Difference in Topic Probability by Subject (with 95% CI)", 
+                              xlab = "More Likely Computing                           Not Significant                       More Likely Social Science",
+                              main = "Effect of Subject on Topic Prevelance for UNCC Research",
+                              xlim = c(-0.1,0.1))
+```
+
+Let's redo this plot but rank the topics.
+
+```{r fig.height = 10, fig.width = 8}
+# order based on Expected Topic Proportion
+rank = order(unlist(Result$means))
+topicRnk <- topic[rank,]
+
+plot.estimateEffect(prep, "Subject", method = "difference", 
+                              cov.value1 = "Social Science", cov.value2 = "Computing", 
+                              verbose.labels = F, 
+                              topics = topicRnk$TopicNumber,
+                              #labeltype = "custom",
+                              #custom.labels  = apply(topicNames$prob, 1, function(x) paste0(x, collapse = " + ")),
+                              ylab = "Expected Difference in Topic Probability by Subject (with 95% CI)", 
+                              xlab = "More Likely Computing                           Not Significant                       More Likely Social Science",
+                              main = "Effect of Subject on Topic Prevelance for UNCC Research",
+                              xlim = c(-0.1,0.1))
+```
+
+## Effect of Time
+
+```{r}
+# time
+par(mfrow = c(1,1),mar = c(4,4,2,2))
+i <- c(21, 17)
+  plot.estimateEffect(prep, "Year", method = "continuous", topics = i, 
+                      main = "Topics 21 and 17 by Year",
+                      printlegend = T, ylab = "Exp. Topic Prob", 
+                      xlab = "Year", ylim = c(-0.01,0.14)
+                      )
+
+```
+

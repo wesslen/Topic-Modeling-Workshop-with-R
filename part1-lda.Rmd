@@ -1,0 +1,140 @@
+---
+title: "Topic Model Workshop - Part 1 (LDA)"
+author: "Ryan Wesslen"
+date: "February 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+## Load the data
+
+Let's start by loading our packages and loading the dataset.
+
+```{r Load Data}
+library(quanteda); library(tidyverse); library(RColorBrewer)
+
+dataset <- read_csv("./articles-sample.csv")
+
+#create corpus
+myCorpus <- corpus(dataset$Abstract)
+```
+
+## Create the dfm (pre-processing)
+
+First, we need to create a dfm (document-feature matrix) and remove a standard list of English stop words. 
+
+We'll also remove sparse terms using the `trim` function.
+
+```{r Pre-Processing}
+dfm <- dfm(myCorpus,
+           ignoredFeatures = c(stopwords("english")),
+           ngrams=c(1,1),
+           stem = F)
+
+vdfm <- trim(dfm, minCount = 10, minDoc = 5)
+# minCount = remove words used less than x
+# minDoc = remove words used in less than x docs
+```
+
+Let's explore the top 50 words.
+
+```{r Top Features}
+topfeatures(vdfm, n = 50)
+```
+
+Let's plot two word clouds: one with the raw term frequencies and one with TF-IDF.
+
+```{r Word Clouds, warning=FALSE}
+plot(vdfm,  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
+     random.order = F, rot.per=0.1, max.words=250, main = "Raw Counts")
+plot(tfidf(vdfm),  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
+     random.order = F, rot.per=0.1, max.words=250, main = "TF-IDF")
+```
+
+Let's now create a dendogram to get an idea of how the words are clustering.
+
+```{r Clustering}
+numWords <- 50
+
+wordDfm <- sort(weight(vdfm, "tfidf"))
+wordDfm <- t(wordDfm)[1:numWords,]  # keep the top numWords words
+wordDistMat <- dist(wordDfm)
+wordCluster <- hclust(wordDistMat)
+plot(wordCluster, xlab="", main="TF-IDF Frequency weighting")
+```
+
+## Topic Modeling (LDA)
+
+For the first part, we're going to use the `topicmodels` package to run LDA.
+
+We're going to run Gibbs sampling which is a simulation based approach to LDA. There are multiple parameters we need to set.
+
+The most important parameter is the number of topics. Usually, for your first time running topic modeling, there isn't a perfect number to start with. This is ok! Usually starting with 10 (hundred of documents) to 50 (tens of thousands of documents). Let's start with 20.
+
+The second important parameter is the number of iterations. We'll set this as 500.
+
+```{r LDA}
+library(topicmodels)
+
+# we now export to a format that we can run the topic model with
+dtm <- convert(vdfm, to="topicmodels")
+
+# estimate LDA with K topics
+K <- 20
+lda <- LDA(dtm, k = K, method = "Gibbs", 
+                control = list(verbose=25L, seed = 123, burnin = 100, iter = 500))
+```
+
+## Visualizations Example: LDAVis
+
+To explore our results, we'll use a Shiny-based interactive visualization called LDAvis. This has been prebuilt as a R package (FYI it's also available in Python). 
+
+In order to use it, we'll need to convert our model results (in the `lda` object) to a json object that LDAVis requires as its input. That function is pre-loaded in the file `functions.R` within the repository. 
+
+```{r LDAVis, results="hide"}
+#Create Json for LDAVis
+library(LDAvis)
+source('./functions.R')
+json <- topicmodels_json_ldavis(lda,vdfm,dtm)
+new.order <- RJSONIO::fromJSON(json)$topic.order
+
+# change open.browser = TRUE to automatically open result in browser
+serVis(json, out.dir = 'unccResearch', open.browser = F)
+```
+
+Let's view the topics.
+
+```{r}
+term <- terms(lda, 10)
+
+# Topic #'s reordered!!
+term <- term[,new.order]
+colnames(term) <- paste("Topic",1:K)
+term
+```
+
+Like topics are probability distribution of words, in LDA documents are probability distributions of topics.  
+
+Accordingly, we can rank the documents (papers) by how much they rank for each topic. In other words, 
+
+First, let's extract the document-topic probability matrix.
+
+```{r Doc-Topic Matrix}
+# to get topic probabilities per document
+postlist <- posterior(lda)
+probtopics <- data.frame(postlist$topics)
+probtopics <- probtopics[,new.order]
+colnames(probtopics) <- paste("Topic",1:K)
+```
+
+Next, let's find the most representative document for Topic 1.
+
+```{r Representative Docs}
+filter.topic <- "Topic 1"
+
+row <- order(-probtopics[,filter.topic])[1]
+dataset$Abstract[row]
+```

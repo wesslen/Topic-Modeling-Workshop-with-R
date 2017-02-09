@@ -1,0 +1,270 @@
+---
+title: "Topic Model Workshop - Part 2 (CTM)"
+author: "Ryan Wesslen"
+date: "February 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+## Load the data
+
+Let's reload our packages and dataset (no need to reload if you have it saved from part 1).
+
+```{r Load Data}
+library(quanteda); library(tidyverse); library(RColorBrewer); library(stm)
+
+dataset <- read_csv("~/Dropbox (UNC Charlotte)/Topic-Model-Workshop/articles-sample.csv")
+
+#create corpus
+myCorpus <- corpus(dataset$Abstract)
+```
+
+## Create the dfm (pre-processing)
+
+This time, let's remove a pre-created list of "generic" words to our original stop list. These are words that are research terms that do not tell much about the subject itself.
+
+```{r Pre-Processing}
+stopWords <- c("can","use","uses","used","using","study","studies","first","second","third","also","across","results","result","resulted","may","however","one","two","three","four","five","among","well","within","many","related","i.e","e.g","find","finding","finds","found","increase","increases","increasing","increased","decreased","decrease","decreases","decreasing","propose","proposal","proposals","proposes","proposed","new","old","differ","differs","different","difference","differences","positive","negative","findings","reports","report","reported","state","states","article","articles","examines","examine","suggest","research","researches","researchers","need","needs","show","shows","association","associations","associated","discuss","discusses","discussed","will","likely","unlikely","paper","method","methods","methodology","compared","specifically","approach","impact","impacts","examine","examined","examines","includes","include","included","including","measure","measures","measured","analysis","analyze","analyses","complete","completes","completed","indicate","indicated","indicates","high","higher","low","lower","follow","follows","following","significant","significance","approach","approaches","approached","model","models","demonstrate","demonstrated","demonstrates","yet","best","worst","better","large","small","larger","smaller","several","few","much","less","given","via","long","short","often","years","along","whether","potential","significantly","influence","influenced","influences","develop","develops","developed","good","bad","based","p","group","groups","effect","affect","affects","effects","sample","samples","relationship","relationships","change","changes","m","k","conclusion","conclusions","present","presents")
+
+dfm <- dfm(myCorpus,
+           ignoredFeatures = c(stopwords("english"), stopWords),
+           ngrams=c(1,1),
+           stem = F)
+
+vdfm <- trim(dfm, minCount = 10, minDoc = 5)
+# minCount = remove words used less than x
+# minDoc = remove words used in less than x docs
+```
+
+Let's explore the top 50 words.
+
+```{r Top Features}
+topfeatures(vdfm, n = 50)
+```
+
+Let's plot two word clouds: one with the raw term frequencies and one with TF-IDF.
+
+```{r Word Clouds, warning=FALSE}
+plot(vdfm,  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
+     random.order = F, rot.per=0.1, max.words=250, main = "Raw Counts")
+plot(tfidf(vdfm),  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
+     random.order = F, rot.per=0.1, max.words=250, main = "TF-IDF")
+```
+
+Let's now create a dendogram to get an idea of how the words are clustering.
+
+```{r Clustering}
+numWords <- 50
+
+wordDfm <- sort(weight(vdfm, "tfidf"))
+wordDfm <- t(wordDfm)[1:numWords,]  # keep the top numWords words
+wordDistMat <- dist(wordDfm)
+wordCluster <- hclust(wordDistMat)
+plot(wordCluster, xlab="", main="TF-IDF Frequency weighting")
+```
+
+## Correlated Topic Model (CTM) with stm package
+
+For this part (and the next), we're going to use the `stm` package.
+
+We're going to run Gibbs sampling which is a simulation based approach to LDA. There are multiple parameters we need to set.
+
+The most important parameter is the number of topics. Usually, for your first time running topic modeling, there isn't a perfect number to start with. This is ok! Usually starting with 10 (hundred of documents) to 50 (tens of thousands of documents). Let's start with 20.
+
+The second important parameter is the number of iterations. We'll set this as 500.
+
+```{r Load package}
+library(stm)
+
+# use quanteda converter to convert our Dfm
+stmdfm <- convert(dfm, to = "stm")
+```
+
+Unlike the `topicmodels` packages, `stm` has built in features to help analysts reduce sparse terms (minDoc or minCount).
+
+```{r Sparse Terms}
+plotRemoved(stmdfm$documents, lower.thresh = seq(1, 100, by = 10))
+
+out <- prepDocuments(stmdfm$documents, stmdfm$vocab, stmdfm$meta, lower.thresh = 5)
+```
+
+This time, let's consider running a 40 topic model. The code simply loads the file. You can run the model (which will take several minutes) by uncommenting out the code. 
+
+```{r Model Fit}
+k <- 40
+load(file = "./ctmfit.RData")
+
+#ctmFit <- stm(out$documents, out$vocab, K = k,
+#              max.em.its = 150, data = out$meta, init.type = "Spectral", seed = 300)
+
+#save(ctmFit, file = "./ctmfit.RData")
+```
+
+## Exploring the results through `stm`'s visualizations.
+
+Let's explore the topics.
+
+```{r, fig.height=10, fig.width=8}
+plot.STM(ctmFit, 
+         type = "summary", 
+         xlim = c(0,.16), 
+         n = 5, 
+         labeltype = "prob",
+         main = "UNCC Research Topics", 
+         text.cex = 0.8)
+```
+
+There are a lot of static visualizations we can explore. We'll use the `plot.STM` function.
+
+This function provides four different types of plots. Each can be selected using its name for the `type` parameter.
+
+The four plots are:
+
+1.  `summary` - plots topic proportions and names.
+
+2.  `labels` - plots the top words for a specific topic.
+
+3.  `perspectives` - compares two topics' words.
+
+4.  `hist` - a histogram of the expected topic proportions across documents for a topic.
+
+Let's examine one of the topics to interpret its meaning. Let's consider topic 25 using the `labels` type.
+
+```{r}
+plot.STM(ctmFit, # model results
+         type = "labels", # type of plot
+         labeltype="prob", # label type for the words
+         n = 30, # number of words to show
+         topics = 25, # the topic we've selected
+         text.cex = 1.2, # this increases the font by 20% (1.2 = 120%)
+         width = 50) # this increases the width of the box
+```
+
+This is clearly Education topics. But if we look back at the summary, there's also topic 26 with related terms.
+
+We can alternatively use a different weighting scheme to focus on the words that are most distinctive for each topic. 
+
+For this, we'll use the `frex` labeltype. FREX stands for *frequent*-*exclusive* words, thus indicating words that are frequently used but exclusive to the topic.
+
+```{r}
+plot.STM(ctmFit, 
+         type = "labels", 
+         labeltype="frex",
+         n = 30, 
+         topics = 25, 
+         text.cex = 1.2, 
+         width = 50)
+```
+
+Or we can use the "lift"...
+
+```{r}
+plot.STM(ctmFit, 
+         type = "labels", 
+         labeltype="lift", 
+         n = 30, 
+         topics = 25, 
+         text.cex = 1.2, 
+         width = 50)
+```
+
+There isn't a "correct" approach. Each offers a unique perspective and knowing each one can help your full interpretation of a topic.
+
+```{r}
+topicNames <- labelTopics(ctmFit, n = 5)
+topic <- data.frame(
+  TopicNumber = 1:k,
+  TopicProportions = colMeans(ctmFit$theta))
+```
+
+
+## Visualizations Example: Correlated Topic Model
+
+Let's create a network correlation plot. We'll use a static network first.
+
+```{r}
+library(igraph); library(visNetwork)
+
+mod.out.corr <- topicCorr(ctmFit, cutoff = .01)
+plot(mod.out.corr)
+```
+
+This is a start but let's create a better, interactive network using the `visNetwork` package.
+
+To create that network, we'll need to format the data for that package by creating two data frames: nodes and edges.
+
+```{r}
+# output links and simplify
+links2 <- as.matrix(mod.out.corr$posadj)
+net2 <- graph_from_adjacency_matrix(links2, mode = "undirected")
+net2 <- simplify(net2, remove.multiple = F, remove.loops = T) 
+
+# create the links and nodes
+links <- as_data_frame(net2, what="edges")
+nodes <- as_data_frame(net2, what="vertices")
+
+# set parameters for the network
+nodes$shape <- "dot"  
+nodes$title <- paste0("Topic ", topic$TopicNumber)
+nodes$label <- apply(topicNames$prob, 1, function(x) paste0(x, collapse = " \n ")) # Node label
+nodes$size <- (topic$TopicProportions / max(topic$TopicProportions)) * 30
+nodes$font <- "18px"
+nodes$id <- as.numeric(1:k)
+
+visNetwork(nodes, links, width="100%",  height="800px", main="UNCC Research Topics") %>% 
+  visOptions(highlightNearest = list(enabled = TRUE, algorithm = "hierarchical")) %>%
+  visNodes(scaling = list(max = 60)) %>%
+  visIgraphLayout(smooth = T) %>%
+  visInteraction(navigationButtons = T)
+```
+
+Knowing this, let's use the `perspectives` type to examine two topics.
+
+For example, let's consider health care topics. 
+
+Let's look at topic 30 ("patients") and topic 11 ("health, care, older").
+
+```{r}
+plot.STM(ctmFit, 
+         type = "perspectives", 
+         labeltype="prob",
+         n = 30, 
+         topics = c(30, 11), 
+         text.cex = 0.8)
+```
+
+This shows the distinctive words versus the "shared" words.
+
+Let's now consider how the plot looks for two topics that are not similar (i.e. do not share an edge).
+
+We'll choose Topic 25 ("alcohol, drugs") and Topic 32 ("genetics")
+
+```{r}
+plot.STM(ctmFit, 
+         type = "perspectives", 
+         labeltype="prob",
+         n = 30, 
+         topics = c(25, 32), 
+         text.cex = 0.8)
+```
+
+What's interesting is that the only shared word is "data", which is shared by a lot of topics. Recall -- it was the most prevalent word in the corpus.
+
+## Semantic Coherence & Exclusivity
+
+A quick view is that there are two ways of measuring topic "interpretability": Semantic Coherence and Exclusivity.
+
+Semantic coherence measures the consistency of the words used within the topic. Larger values are better and mean the topic is more consistent. Low values sometimes imply the topic may be composed of sub-topics.
+
+Exclusivity measures how distinctive the top words are to that topic. For this, larger or smaller is not necessary better or worse, but indicates whether the topic is unique (high value) or broad (low value).
+
+Let's plot this using the `topicQuality` function.
+
+```{r fig.height = 8, fig.width = 8}
+topicQuality(ctmFit, out$documents)
+```
+
+
