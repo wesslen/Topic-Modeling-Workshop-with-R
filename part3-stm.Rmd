@@ -16,7 +16,7 @@ Let's start by loading our packages and loading the dataset.
 ```{r}
 library(quanteda); library(tidyverse); library(RColorBrewer); library(stm)
 
-dataset <- read_csv("~/Dropbox (UNC Charlotte)/Topic-Model-Workshop/articles-sample.csv")
+dataset <- read_csv("./articles-sample.csv")
 
 #create corpus
 myCorpus <- corpus(dataset$Abstract)
@@ -143,7 +143,7 @@ i <- c(21, 17)
   plot.estimateEffect(prep, "Year", method = "continuous", topics = i, 
                       main = "Topics 21 and 17 by Year",
                       printlegend = T, ylab = "Exp. Topic Prob", 
-                      xlab = "Year", ylim = c(-0.01,0.14)
+                      xlab = "Year", ylim = c(-0.01,0.16)
                       )
 
 ```
