@@ -1,4 +1,4 @@
-### Set up
+## Set up
 
 1.  Download the materials in this repository using the "Clone or download" button and click the "Download ZIP" link. Unzip the file locally.
 
