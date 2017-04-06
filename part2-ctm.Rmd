@@ -73,12 +73,6 @@ plot(wordCluster, xlab="", main="TF-IDF Frequency weighting")
 
 For this part (and the next), we're going to use the `stm` package.
 
-We're going to run Gibbs sampling which is a simulation based approach to LDA. There are multiple parameters we need to set.
-
-The most important parameter is the number of topics. Usually, for your first time running topic modeling, there isn't a perfect number to start with. This is ok! Usually starting with 10 (hundred of documents) to 50 (tens of thousands of documents). Let's start with 20.
-
-The second important parameter is the number of iterations. We'll set this as 500.
-
 ```{r Load package}
 library(stm)
 
