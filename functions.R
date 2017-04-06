@@ -14,9 +14,10 @@ topicmodels_json_ldavis <- function(fitted, dfm, dtm){
   
   doc_length <- ntoken(dfm[rownames(dtm)])
   
-  temp_frequency <- inspect(dtm)
+  temp_frequency <- as.matrix(dtm)
   freq_matrix <- data.frame(ST = colnames(temp_frequency),
-                            Freq = colSums(temp_frequency))
+                            Freq = colSums(temp_frequency),
+                            stringsAsFactors = F)
   rm(temp_frequency)
   
   # Convert to json

@@ -1,7 +1,7 @@
 ---
 title: "Topic Model Workshop - Part 2 (CTM)"
 author: "Ryan Wesslen"
-date: "February 7, 2017"
+date: "April 6, 2017"
 output: html_document
 ---
 
@@ -16,7 +16,7 @@ Let's reload our packages and dataset (no need to reload if you have it saved fr
 ```{r Load Data}
 library(quanteda); library(tidyverse); library(RColorBrewer); library(stm)
 
-dataset <- read_csv("~/Dropbox (UNC Charlotte)/Topic-Model-Workshop/articles-sample.csv")
+dataset <- read_csv("~/Dropbox (UNC Charlotte)/Topic Modeling Workshop with R/articles-sample.csv")
 
 #create corpus
 myCorpus <- corpus(dataset$Abstract)
@@ -30,13 +30,16 @@ This time, let's remove a pre-created list of "generic" words to our original st
 stopWords <- c("can","use","uses","used","using","study","studies","first","second","third","also","across","results","result","resulted","may","however","one","two","three","four","five","among","well","within","many","related","i.e","e.g","find","finding","finds","found","increase","increases","increasing","increased","decreased","decrease","decreases","decreasing","propose","proposal","proposals","proposes","proposed","new","old","differ","differs","different","difference","differences","positive","negative","findings","reports","report","reported","state","states","article","articles","examines","examine","suggest","research","researches","researchers","need","needs","show","shows","association","associations","associated","discuss","discusses","discussed","will","likely","unlikely","paper","method","methods","methodology","compared","specifically","approach","impact","impacts","examine","examined","examines","includes","include","included","including","measure","measures","measured","analysis","analyze","analyses","complete","completes","completed","indicate","indicated","indicates","high","higher","low","lower","follow","follows","following","significant","significance","approach","approaches","approached","model","models","demonstrate","demonstrated","demonstrates","yet","best","worst","better","large","small","larger","smaller","several","few","much","less","given","via","long","short","often","years","along","whether","potential","significantly","influence","influenced","influences","develop","develops","developed","good","bad","based","p","group","groups","effect","affect","affects","effects","sample","samples","relationship","relationships","change","changes","m","k","conclusion","conclusions","present","presents")
 
 dfm <- dfm(myCorpus,
-           ignoredFeatures = c(stopwords("english"), stopWords),
-           ngrams=c(1,1),
-           stem = F)
+           remove = c(stopwords("english"), stopWords),
+           ngrams= 1L,
+           stem = F,
+           removeNumbers = T, 
+           removePunct = T,
+           removeSymbols = T)
 
-vdfm <- trim(dfm, minCount = 10, minDoc = 5)
-# minCount = remove words used less than x
-# minDoc = remove words used in less than x docs
+vdfm <- dfm_trim(dfm, min_count = 10, min_docfreq = 5)
+# min_count = remove words used less than x
+# min_docfreq = remove words used in less than x docs
 ```
 
 Let's explore the top 50 words.
@@ -85,7 +88,7 @@ stmdfm <- convert(dfm, to = "stm")
 
 Unlike the `topicmodels` packages, `stm` has built in features to help analysts reduce sparse terms (minDoc or minCount).
 
-```{r Sparse Terms}
+```{r Sparse Terms, fig.height=4}
 plotRemoved(stmdfm$documents, lower.thresh = seq(1, 100, by = 10))
 
 out <- prepDocuments(stmdfm$documents, stmdfm$vocab, stmdfm$meta, lower.thresh = 5)
@@ -108,7 +111,7 @@ load(file = "./ctmfit.RData")
 Let's explore the topics.
 
 ```{r, fig.height=10, fig.width=8}
-plot.STM(ctmFit, 
+plot(ctmFit, 
          type = "summary", 
          xlim = c(0,.16), 
          n = 5, 
@@ -134,7 +137,7 @@ The four plots are:
 Let's examine one of the topics to interpret its meaning. Let's consider topic 25 using the `labels` type.
 
 ```{r}
-plot.STM(ctmFit, # model results
+plot(ctmFit, # model results
          type = "labels", # type of plot
          labeltype="prob", # label type for the words
          n = 30, # number of words to show
@@ -150,7 +153,7 @@ We can alternatively use a different weighting scheme to focus on the words that
 For this, we'll use the `frex` labeltype. FREX stands for *frequent*-*exclusive* words, thus indicating words that are frequently used but exclusive to the topic.
 
 ```{r}
-plot.STM(ctmFit, 
+plot(ctmFit, 
          type = "labels", 
          labeltype="frex",
          n = 30, 
@@ -162,7 +165,7 @@ plot.STM(ctmFit,
 Or we can use the "lift"...
 
 ```{r}
-plot.STM(ctmFit, 
+plot(ctmFit, 
          type = "labels", 
          labeltype="lift", 
          n = 30, 
@@ -200,11 +203,11 @@ To create that network, we'll need to format the data for that package by creati
 # output links and simplify
 links2 <- as.matrix(mod.out.corr$posadj)
 net2 <- graph_from_adjacency_matrix(links2, mode = "undirected")
-net2 <- simplify(net2, remove.multiple = F, remove.loops = T) 
+net2 <- igraph::simplify(net2) 
 
 # create the links and nodes
-links <- as_data_frame(net2, what="edges")
-nodes <- as_data_frame(net2, what="vertices")
+links <- igraph::as_data_frame(net2, what="edges")
+nodes <- igraph::as_data_frame(net2, what="vertices")
 
 # set parameters for the network
 nodes$shape <- "dot"  
@@ -228,7 +231,7 @@ For example, let's consider health care topics.
 Let's look at topic 30 ("patients") and topic 11 ("health, care, older").
 
 ```{r}
-plot.STM(ctmFit, 
+plot(ctmFit, 
          type = "perspectives", 
          labeltype="prob",
          n = 30, 
@@ -243,7 +246,7 @@ Let's now consider how the plot looks for two topics that are not similar (i.e. 
 We'll choose Topic 25 ("alcohol, drugs") and Topic 32 ("genetics")
 
 ```{r}
-plot.STM(ctmFit, 
+plot(ctmFit, 
          type = "perspectives", 
          labeltype="prob",
          n = 30, 

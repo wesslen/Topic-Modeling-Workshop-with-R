@@ -1,7 +1,7 @@
 ---
 title: "Topic Model Workshop - Part 1 (LDA)"
 author: "Ryan Wesslen"
-date: "February 7, 2017"
+date: "April 6, 2017"
 output: html_document
 ---
 
@@ -30,13 +30,16 @@ We'll also remove sparse terms using the `trim` function.
 
 ```{r Pre-Processing}
 dfm <- dfm(myCorpus,
-           ignoredFeatures = c(stopwords("english")),
-           ngrams=c(1,1),
-           stem = F)
+           remove = c(stopwords("english")),
+           ngrams=1L,
+           stem = F,
+           removeNumbers = T, 
+           removePunct = T,
+           removeSymbols = T)
 
-vdfm <- trim(dfm, minCount = 10, minDoc = 5)
-# minCount = remove words used less than x
-# minDoc = remove words used in less than x docs
+vdfm <- dfm_trim(dfm, min_count = 10, min_docfreq = 5)
+# min_count = remove words used less than x
+# min_docfreq = remove words used in less than x docs
 ```
 
 Let's explore the top 50 words.
