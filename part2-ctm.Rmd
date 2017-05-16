@@ -33,9 +33,9 @@ dfm <- dfm(myCorpus,
            remove = c(stopwords("english"), stopWords),
            ngrams= 1L,
            stem = F,
-           removeNumbers = T, 
-           removePunct = T,
-           removeSymbols = T)
+           remove_numbers = TRUE, 
+           remove_punct = TRUE,
+           remove_symbols = TRUE)
 
 vdfm <- dfm_trim(dfm, min_count = 10, min_docfreq = 5)
 # min_count = remove words used less than x

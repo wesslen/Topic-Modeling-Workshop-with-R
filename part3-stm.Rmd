@@ -33,9 +33,9 @@ dfm <- dfm(myCorpus,
            remove = c(stopwords("english"), stopWords),
            ngrams= 1L,
            stem = F,
-           removeNumbers = T, 
-           removePunct = T,
-           removeSymbols = T)
+           remove_numbers = TRUE, 
+           remove_punct = TRUE,
+           remove_symbols = TRUE)
 ```
 
 ## Structural Topic Model: Subject and Year
