@@ -1,7 +1,7 @@
 ---
 title: "Topic Model Workshop - Part 2 (CTM)"
 author: "Ryan Wesslen"
-date: "April 6, 2017"
+date: "Nov 27, 2017"
 output: html_document
 ---
 
@@ -16,7 +16,7 @@ Let's reload our packages and dataset (no need to reload if you have it saved fr
 ```{r Load Data}
 library(quanteda); library(tidyverse); library(RColorBrewer); library(stm)
 
-dataset <- read_csv("~/Dropbox (UNC Charlotte)/Topic Modeling Workshop with R/articles-sample.csv")
+dataset <- read_csv("./articles-sample.csv")
 
 #create corpus
 myCorpus <- corpus(dataset$Abstract)
@@ -264,4 +264,8 @@ Let's plot this using the `topicQuality` function.
 topicQuality(ctmFit, out$documents)
 ```
 
+## Session Info
 
+```{r}
+sessionInfo()
+```

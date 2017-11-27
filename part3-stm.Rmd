@@ -1,7 +1,7 @@
 ---
 title: "Topic Model Workshop - Part 3 (STM)"
 author: "Ryan Wesslen"
-date: "April 6, 2017"
+date: "Nov 27, 2017"
 output: html_document
 ---
 
@@ -20,7 +20,8 @@ dataset <- read_csv("./articles-sample.csv")
 
 #create corpus
 myCorpus <- corpus(dataset$Abstract)
-docvars(myCorpus, field = "Subject") <- ifelse(dataset$College=="Computing and Informatics","Computing","Social Science")
+docvars(myCorpus, field = "Subject") <- ifelse(dataset$College=="Computing and Informatics",
+                                               "Computing","Social Science")
 docvars(myCorpus, field = "Year") <- as.integer(dataset$Year)
 ```
 
@@ -105,13 +106,18 @@ prep <- estimateEffect(1:k ~ Subject + s(Year), stmFit, meta = out$meta, uncerta
 We can then use the `plot.estimateEffect` function to compare the effect of the "Subject" field (Computing or Social Science binary flag) on topic proportions (likelihood of the topic).
 
 ```{r fig.height = 10, fig.width = 8}
-Result <- plot(prep, "Subject", method = "difference", 
-                              cov.value1 = "Social Science", cov.value2 = "Computing", 
-                              verbose.labels = F, 
-                              ylab = "Expected Difference in Topic Probability by Subject (with 95% CI)", 
-                              xlab = "More Likely Computing                           Not Significant                       More Likely Social Science",
-                              main = "Effect of Subject on Topic Prevelance for UNCC Research",
-                              xlim = c(-0.1,0.1))
+Result <- plot(
+  prep,
+  "Subject",
+  method = "difference",
+  cov.value1 = "Social Science",
+  cov.value2 = "Computing",
+  verbose.labels = F,
+  ylab = "Expected Difference in Topic Probability by Subject (with 95% CI)",
+  xlab = "More Likely Computing                           Not Significant                       More Likely Social Science",
+  main = "Effect of Subject on Topic Prevelance for UNCC Research",
+  xlim = c(-0.1, 0.1)
+  )
 ```
 
 Let's redo this plot but rank the topics.
@@ -119,31 +125,46 @@ Let's redo this plot but rank the topics.
 ```{r fig.height = 10, fig.width = 8}
 # order based on Expected Topic Proportion
 rank = order(unlist(Result$means))
-topicRnk <- topic[rank,]
+topicRnk <- topic[rank, ]
 
-plot(prep, "Subject", method = "difference", 
-                              cov.value1 = "Social Science", cov.value2 = "Computing", 
-                              verbose.labels = F, 
-                              topics = topicRnk$TopicNumber,
-                              #labeltype = "custom",
-                              #custom.labels  = apply(topicNames$prob, 1, function(x) paste0(x, collapse = " + ")),
-                              ylab = "Expected Difference in Topic Probability by Subject (with 95% CI)", 
-                              xlab = "More Likely Computing                           Not Significant                       More Likely Social Science",
-                              main = "Effect of Subject on Topic Prevelance for UNCC Research",
-                              xlim = c(-0.1,0.1))
+plot(
+  prep,
+  "Subject",
+  method = "difference",
+  cov.value1 = "Social Science",
+  cov.value2 = "Computing",
+  verbose.labels = F,
+  topics = topicRnk$TopicNumber,
+  #labeltype = "custom",
+  #custom.labels  = apply(topicNames$prob, 1, function(x) paste0(x, collapse = " + ")),
+  ylab = "Expected Difference in Topic Probability by Subject (with 95% CI)",
+  xlab = "More Likely Computing                           Not Significant                       More Likely Social Science",
+  main = "Effect of Subject on Topic Prevelance for UNCC Research",
+  xlim = c(-0.1, 0.1)
+)
 ```
 
 ## Effect of Time
 
 ```{r}
 # time
-par(mfrow = c(1,1),mar = c(4,4,2,2))
-i <- c(9,18)
-  plot(prep, "Year", method = "continuous", topics = i, 
-                      main = "Topics 9 and 18 by Year",
-                      printlegend = T, ylab = "Exp. Topic Prob", 
-                      xlab = "Year", ylim = c(-0.01,0.16)
-                      )
-
+par(mfrow = c(1, 1), mar = c(4, 4, 2, 2))
+i <- c(9, 18)
+plot(
+  prep,
+  "Year",
+  method = "continuous",
+  topics = i,
+  main = "Topics 9 and 18 by Year",
+  printlegend = T,
+  ylab = "Exp. Topic Prob",
+  xlab = "Year",
+  ylim = c(-0.01, 0.16)
+)
 ```
 
+## Session Info
+
+```{r}
+sessionInfo()
+```

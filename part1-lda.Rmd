@@ -1,7 +1,7 @@
 ---
 title: "Topic Model Workshop - Part 1 (LDA)"
 author: "Ryan Wesslen"
-date: "April 6, 2017"
+date: "Nov 27, 2017"
 output: html_document
 ---
 
@@ -140,4 +140,10 @@ filter.topic <- "Topic 1"
 
 row <- order(-probtopics[,filter.topic])[1]
 dataset$Abstract[row]
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
 ```
