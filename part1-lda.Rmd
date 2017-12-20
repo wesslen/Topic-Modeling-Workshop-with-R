@@ -51,9 +51,9 @@ topfeatures(vdfm, n = 50)
 Let's plot two word clouds: one with the raw term frequencies and one with TF-IDF.
 
 ```{r Word Clouds, warning=FALSE}
-plot(vdfm,  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
+textplot_wordcloud(vdfm,  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
      random.order = F, rot.per=0.1, max.words=250, main = "Raw Counts")
-plot(tfidf(vdfm),  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
+textplot_wordcloud(tfidf(vdfm),  scale=c(3.5, .75), colors=brewer.pal(8, "Dark2"), 
      random.order = F, rot.per=0.1, max.words=250, main = "TF-IDF")
 ```
 
@@ -62,11 +62,11 @@ Let's now create a dendogram to get an idea of how the words are clustering.
 ```{r Clustering}
 numWords <- 50
 
-wordDfm <- sort(weight(vdfm, "tfidf"))
+wordDfm <- dfm_sort(dfm_weight(vdfm, "tfidf"))
 wordDfm <- t(wordDfm)[1:numWords,]  # keep the top numWords words
 wordDistMat <- dist(wordDfm)
 wordCluster <- hclust(wordDistMat)
-plot(wordCluster, xlab="", main="TF-IDF Frequency weighting")
+plot(wordCluster, xlab="", main="TF-IDF Frequency weighting (First 50 Words)")
 ```
 
 ## Topic Modeling (LDA)
